@@ -1,8 +1,8 @@
-use std::net::TcpListener;
-use actix_web::{web, App, HttpServer};
-use actix_web::dev::Server;
-use sqlx::PgPool;
 use crate::routes::{health_check, subscribe};
+use actix_web::dev::Server;
+use actix_web::{web, App, HttpServer};
+use sqlx::PgPool;
+use std::net::TcpListener;
 
 pub fn run(listener: TcpListener, connection_pool: PgPool) -> Result<Server, std::io::Error> {
     let connection_pool = web::Data::new(connection_pool);

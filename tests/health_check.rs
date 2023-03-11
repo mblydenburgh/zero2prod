@@ -1,10 +1,10 @@
-use sqlx::{PgConnection, Connection, PgPool, Executor};
-use zero2prod::configuration::{get_configuration, DatabaseSettings};
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
+use zero2prod::configuration::{get_configuration, DatabaseSettings};
 
 pub struct TestApp {
     pub address: String,
-    pub connection_pool: PgPool
+    pub connection_pool: PgPool,
 }
 
 async fn spawn_app() -> TestApp {
@@ -14,19 +14,18 @@ async fn spawn_app() -> TestApp {
     let mut configuration = get_configuration().expect("Failed to get configuration");
     configuration.database.name = uuid::Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
-    let server = zero2prod::startup::run(listener, connection_pool.clone()).expect("Failed to bind server address");
+    let server = zero2prod::startup::run(listener, connection_pool.clone())
+        .expect("Failed to bind server address");
     let _ = tokio::spawn(server);
     TestApp {
         address,
-        connection_pool
+        connection_pool,
     }
 }
 
 async fn configure_database(db_config: &DatabaseSettings) -> PgPool {
     // Create connection to database in order to generate new randomly named table for testing
-    let mut connection = PgConnection::connect(
-        &db_config.connection_string_without_db()
-    )
+    let mut connection = PgConnection::connect(&db_config.connection_string_without_db())
         .await
         .expect("Could not connection to db");
     // Run create table with random name
@@ -50,7 +49,8 @@ async fn configure_database(db_config: &DatabaseSettings) -> PgPool {
 async fn health_check_works() {
     let test_app = spawn_app().await;
     let client = reqwest::Client::new();
-    let response = client.get(&format!("{}/health_check", &test_app.address))
+    let response = client
+        .get(&format!("{}/health_check", &test_app.address))
         .send()
         .await
         .expect("Failed to reach health check endpoint");
@@ -72,9 +72,9 @@ async fn subsribe_returns_200_for_valid_req() {
         .expect("Failed to execute request");
     assert_eq!(200, response.status().as_u16());
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-    .fetch_one(&test_app.connection_pool)
-    .await
-    .expect("Failed to fetch saved subscription");
+        .fetch_one(&test_app.connection_pool)
+        .await
+        .expect("Failed to fetch saved subscription");
     assert_eq!(saved.name, "bob bobbington");
     assert_eq!(saved.email, "bob@test.com");
 }
@@ -89,14 +89,18 @@ async fn subsribe_returns_400_for_invalid_req() {
         ("", "missing both name and email"),
     ];
     for (body, error_message) in test_cases {
-    let response = client
-        .post(format!("{}/subscriptions", &test_app.address))
-        .header("Content-Type", "application/x-www-form-urlencoded")
-        .body(body)
-        .send()
-        .await
-        .expect("Failed to execute request");
-    assert_eq!(400, response.status().as_u16(), "The API did not fail with 400 Bad Request when the payload was {}", error_message);
-
+        let response = client
+            .post(format!("{}/subscriptions", &test_app.address))
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body)
+            .send()
+            .await
+            .expect("Failed to execute request");
+        assert_eq!(
+            400,
+            response.status().as_u16(),
+            "The API did not fail with 400 Bad Request when the payload was {}",
+            error_message
+        );
     }
-    }
+}
