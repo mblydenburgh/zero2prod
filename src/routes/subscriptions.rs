@@ -28,7 +28,7 @@ pub async fn subscribe(
     {
         Ok(_) => HttpResponse::Ok().finish(),
         Err(err) => {
-            println!("Failed to execute insert: {}", err);
+            println!("Failed to execute insert: {err}");
             HttpResponse::InternalServerError().finish()
         }
     }
