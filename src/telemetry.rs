@@ -7,16 +7,16 @@ use tracing_subscriber::{layer::SubscriberExt, EnvFilter, Registry};
 pub fn get_subscriber<Sink>(
     name: String,
     env_filter: String,
-    sink: Sink
-) -> impl Subscriber + Send + Sync 
-    where
-        // this is a HRTB (higher-ranked trait bound). it means that Sink
-        // implements MakeWriter trait for all choices of the lifetime param 'a
-        Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
+    sink: Sink,
+) -> impl Subscriber + Send + Sync
+where
+    // this is a HRTB (higher-ranked trait bound). it means that Sink
+    // implements MakeWriter trait for all choices of the lifetime param 'a
+    Sink: for<'a> MakeWriter<'a> + Send + Sync + 'static,
 {
-    let env_filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(env_filter));
-    let formatting_layer = BunyanFormattingLayer::new(name,sink);
+    let env_filter =
+        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(env_filter));
+    let formatting_layer = BunyanFormattingLayer::new(name, sink);
     Registry::default()
         .with(env_filter)
         .with(JsonStorageLayer)
