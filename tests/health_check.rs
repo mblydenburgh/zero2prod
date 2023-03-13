@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use secrecy::ExposeSecret;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use zero2prod::{
@@ -42,16 +43,17 @@ async fn spawn_app() -> TestApp {
 async fn configure_database(db_config: &DatabaseSettings) -> PgPool {
     Lazy::force(&TRACING);
     // Create connection to database in order to generate new randomly named table for testing
-    let mut connection = PgConnection::connect(&db_config.connection_string_without_db())
-        .await
-        .expect("Could not connection to db");
+    let mut connection =
+        PgConnection::connect(&db_config.connection_string_without_db().expose_secret())
+            .await
+            .expect("Could not connection to db");
     // Run create table with random name
     connection
         .execute(format!(r#"CREATE DATABASE "{}";"#, db_config.name).as_str())
         .await
         .expect("Failed to create test database");
     // Run migrations
-    let connection_pool = PgPool::connect(&db_config.connection_string())
+    let connection_pool = PgPool::connect(&db_config.connection_string().expose_secret())
         .await
         .expect("Failed to create connection pool");
     sqlx::migrate!("./migrations")
