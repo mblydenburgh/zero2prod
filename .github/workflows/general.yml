@@ -10,7 +10,7 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
     branches:
-      - root-chapter-03-part1
+      - main
 
 env:
   CARGO_TERM_COLOR: always
@@ -47,6 +47,8 @@ jobs:
         run: |
           sudo apt-get install libpq-dev -y
           SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Check if sqlx-data.json is up to date
+        run: cargo sqlx prepare --check -- --bin zero2prod
       - name: Run tests
         run: cargo test
 
