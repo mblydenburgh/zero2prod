@@ -1,3 +1,3 @@
 # !/usr/bin/env bash
 
-docker build --tag zero2prod --file Dockerfile .
+docker build --build-arg LOCAL=true --tag zero2prod --file DockerfileLocal .
