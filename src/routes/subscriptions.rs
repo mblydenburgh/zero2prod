@@ -23,9 +23,12 @@ pub async fn subscribe(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
 ) -> HttpResponse {
-    let subscriber_name = SubscriberName::parse(form.name.clone());
+    let name = match SubscriberName::parse(form.0.name) {
+        Ok(name) => name,
+        Err(_) => return HttpResponse::BadRequest().finish()
+    };
     let new_subscriber = NewSubscriber {
-        name: subscriber_name,
+        name,
         email: form.0.email
     };
     match save_subscriber(&new_subscriber, &connection_pool).await {
@@ -46,7 +49,7 @@ pub async fn save_subscriber(new_subscriber: &NewSubscriber, connection_pool: &P
         "#,
         Uuid::new_v4(),
         new_subscriber.email,
-        new_subscriber.name.inner_ref(),
+        new_subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(connection_pool)
