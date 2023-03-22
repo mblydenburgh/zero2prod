@@ -13,7 +13,7 @@ impl SubscriberName {
         let invalid_chars = ['/', '(', ')', '[', ']', '{', '}', '"', '<', '>', '\\'];
         let contains_invalid_chars = s.chars().any(|c| invalid_chars.contains(&c));
         if is_empty_or_whitespace || is_too_long || contains_invalid_chars {
-            Err(format!("{} is not a valid name", s))
+            Err(format!("{s} is not a valid name"))
         } else {
             Ok(Self(s))
         }

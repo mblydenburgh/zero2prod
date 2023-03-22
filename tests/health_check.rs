@@ -26,7 +26,7 @@ pub struct TestApp {
 async fn spawn_app() -> TestApp {
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port");
     let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", port);
+    let address = format!("http://127.0.0.1:{port}");
     let mut configuration = get_configuration().expect("Failed to get configuration");
     configuration.database.name = uuid::Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
@@ -117,8 +117,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
         assert_eq!(
             400,
             response.status().as_u16(),
-            "The API did not return a 200 OK when the payload was {}",
-            description
+            "The API did not return a 200 OK when the payload was {description}"
         )
     }
 }
@@ -143,8 +142,7 @@ async fn subsribe_returns_400_for_invalid_req() {
         assert_eq!(
             400,
             response.status().as_u16(),
-            "The API did not fail with 400 Bad Request when the payload was {}",
-            error_message
+            "The API did not fail with 400 Bad Request when the payload was {error_message}"
         );
     }
 }
