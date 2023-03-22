@@ -3,7 +3,6 @@ use unicode_segmentation::UnicodeSegmentation;
 #[derive(Debug)]
 pub struct SubscriberName(String);
 
-
 impl SubscriberName {
     pub fn parse(s: String) -> Result<SubscriberName, String> {
         let is_empty_or_whitespace = s.trim().is_empty();
@@ -12,11 +11,9 @@ impl SubscriberName {
         // that we want to use the extended grapheme definitions set
         let is_too_long = s.graphemes(true).count() > 256;
         let invalid_chars = ['/', '(', ')', '[', ']', '{', '}', '"', '<', '>', '\\'];
-        let contains_invalid_chars = s
-            .chars()
-            .any(|c| invalid_chars.contains(&c));
+        let contains_invalid_chars = s.chars().any(|c| invalid_chars.contains(&c));
         if is_empty_or_whitespace || is_too_long || contains_invalid_chars {
-           Err(format!("{} is not a valid name", s))
+            Err(format!("{} is not a valid name", s))
         } else {
             Ok(Self(s))
         }
@@ -26,7 +23,7 @@ impl SubscriberName {
     }
     pub fn inner_mut(&mut self) -> &mut str {
         &mut self.0
-    } 
+    }
 }
 
 impl AsRef<str> for SubscriberName {

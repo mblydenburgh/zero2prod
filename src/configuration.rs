@@ -1,6 +1,9 @@
 use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::{postgres::{PgConnectOptions, PgSslMode}, ConnectOptions};
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 use tracing::info;
 
 #[derive(serde::Deserialize)]
@@ -13,7 +16,7 @@ pub struct Settings {
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
-    pub host: String
+    pub host: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -24,7 +27,7 @@ pub struct DatabaseSettings {
     pub port: u16,
     pub host: String,
     pub name: String,
-    pub require_ssl: bool
+    pub require_ssl: bool,
 }
 
 impl DatabaseSettings {
@@ -49,8 +52,7 @@ impl DatabaseSettings {
 }
 
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
-    let base_path = std::env::current_dir()
-        .expect("Failed to get curr dir");
+    let base_path = std::env::current_dir().expect("Failed to get curr dir");
     let config_dir = base_path.join("configuration");
     // Get current env
     let env: Environment = std::env::var("APP_ENV")
@@ -65,8 +67,8 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .add_source(config::File::from(config_dir.join(env_filename)))
         .add_source(
             config::Environment::with_prefix("APP")
-            .prefix_separator("_")
-            .separator("__")
+                .prefix_separator("_")
+                .separator("__"),
         )
         .build()?;
     settings.try_deserialize::<Settings>()
@@ -75,14 +77,14 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
 #[derive(Debug)]
 pub enum Environment {
     Local,
-    Production
+    Production,
 }
 
 impl Environment {
     pub fn as_str(&self) -> &'static str {
         match self {
             Environment::Local => "local",
-            Environment::Production => "production"
+            Environment::Production => "production",
         }
     }
 }
@@ -94,7 +96,10 @@ impl TryFrom<String> for Environment {
         match value.to_lowercase().as_str() {
             "local" => Ok(Self::Local),
             "production" => Ok(Self::Production),
-            other => Err(format!("{} is not a supported env, use local or production", other))
+            other => Err(format!(
+                "{} is not a supported env, use local or production",
+                other
+            )),
         }
     }
 }

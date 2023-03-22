@@ -2,7 +2,7 @@ use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use zero2prod::{
-    configuration::{DatabaseSettings, get_configuration},
+    configuration::{get_configuration, DatabaseSettings},
     telemetry::{get_subscriber, init_subscriber},
 };
 
@@ -103,7 +103,7 @@ async fn subscribe_returns_a_400_when_fields_are_present_but_empty() {
     let test_cases = vec![
         ("name=&email=ursula_le_guin%40gmail.com", "empty name"),
         ("name=Ursula&email=", "empty email"),
-        ("name=Ursula&email=not-an-email", "invalid email")
+        ("name=Ursula&email=not-an-email", "invalid email"),
     ];
 
     for (body, description) in test_cases {

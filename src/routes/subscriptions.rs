@@ -3,12 +3,27 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberName};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
     email: String,
     name: String,
+}
+
+// the impl of TryFrom is a built in way to peform the following manual failable conversion
+//pub fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
+//    let name = SubscriberName::parse(form.name)?;
+//    let email = SubscriberEmail::parse(form.email)?;
+//    Ok(NewSubscriber { name, email })
+//}
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String; // type of the error
+    fn try_from(value: FormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(value.name)?;
+        let email = SubscriberEmail::parse(value.email)?;
+        Ok(NewSubscriber { email, name })
+    }
 }
 
 #[tracing::instrument(
@@ -23,13 +38,11 @@ pub async fn subscribe(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
 ) -> HttpResponse {
-    let name = match SubscriberName::parse(form.0.name) {
-        Ok(name) => name,
-        Err(_) => return HttpResponse::BadRequest().finish()
-    };
-    let new_subscriber = NewSubscriber {
-        name,
-        email: form.0.email
+    // alternate way to parse would be form.0.try_into(), since any type that
+    // implements TryFrom gets an imple TryInto for free
+    let new_subscriber = match NewSubscriber::try_from(form.0) {
+        Ok(result) => result,
+        Err(_) => return HttpResponse::BadRequest().finish(),
     };
     match save_subscriber(&new_subscriber, &connection_pool).await {
         Ok(_) => HttpResponse::Ok().finish(),
@@ -40,15 +53,21 @@ pub async fn subscribe(
     }
 }
 
-#[tracing::instrument(name = "Saving subscriber to databse", skip(new_subscriber, connection_pool))]
-pub async fn save_subscriber(new_subscriber: &NewSubscriber, connection_pool: &PgPool) -> Result<(), sqlx::Error> {
+#[tracing::instrument(
+    name = "Saving subscriber to databse",
+    skip(new_subscriber, connection_pool)
+)]
+pub async fn save_subscriber(
+    new_subscriber: &NewSubscriber,
+    connection_pool: &PgPool,
+) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at)
         VALUES ($1, $2, $3, $4)
         "#,
         Uuid::new_v4(),
-        new_subscriber.email,
+        new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),
         Utc::now()
     )
