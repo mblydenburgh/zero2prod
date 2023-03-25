@@ -7,3 +7,6 @@ database:
   password: "password"
   name: "newsletter"
   require_ssl: false
+email_client:
+  base_url: "http://localhost"
+  token: "token_value"
