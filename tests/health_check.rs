@@ -3,7 +3,7 @@ use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
-    telemetry::{get_subscriber, init_subscriber},
+    telemetry::{get_subscriber, init_subscriber}, email_client::EmailClient,
 };
 
 static TRACING: Lazy<()> = Lazy::new(|| {
@@ -30,7 +30,9 @@ async fn spawn_app() -> TestApp {
     let mut configuration = get_configuration().expect("Failed to get configuration");
     configuration.database.name = uuid::Uuid::new_v4().to_string();
     let connection_pool = configure_database(&configuration.database).await;
-    let server = zero2prod::startup::run(listener, connection_pool.clone())
+    let sender_email = configuration.email_client.sender().expect("invalid sender email");
+    let email_client = EmailClient::new(configuration.email_client.base_url, sender_email);
+    let server = zero2prod::startup::run(listener, connection_pool.clone(), email_client)
         .expect("Failed to bind server address");
     let _ = tokio::spawn(server);
     TestApp {
