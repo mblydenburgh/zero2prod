@@ -20,10 +20,12 @@ async fn main() -> Result<(), std::io::Error> {
         configuration.application.host, configuration.application.port
     );
     let sender_email = configuration.email_client.sender().expect("Could not parse sender email");
+    let timeout = configuration.email_client.timeout();
     let email_client = EmailClient::new(
         configuration.email_client.base_url,
         sender_email,
-        configuration.email_client.token
+        configuration.email_client.token,
+        timeout
     );
     let listener = TcpListener::bind(address)?;
     run(listener, connection_pool, email_client)?.await

@@ -10,3 +10,4 @@ database:
 email_client:
   base_url: "http://localhost"
   token: "token_value"
+  timeout_milliseconds: 10000
