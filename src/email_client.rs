@@ -3,6 +3,7 @@ use secrecy::{Secret, ExposeSecret};
 
 use crate::domain::SubscriberEmail;
 
+#[derive(Debug)]
 pub struct EmailClient {
     base_url: reqwest::Url,
     http_client: Client,
@@ -39,7 +40,7 @@ impl EmailClient {
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
-            subject: &subject,
+            subject,
             html_body: html_content,
             text_body: text_content
         };
