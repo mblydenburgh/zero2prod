@@ -61,12 +61,10 @@ pub async fn subscribe(
             "Welcome!",
             &format!(
                 "Welcome to my newsletter! <br>\
-                Click <a href=\"{}\">here</a> to confirm your subscription.",
-                confirmation_link
+                Click <a href=\"{confirmation_link}\">here</a> to confirm your subscription."
             ),
             &format!(
-                "Welcome to my newsletter!\nVisit {} to confirm your subscription.",
-                confirmation_link
+                "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
             ),
         )
         .await
