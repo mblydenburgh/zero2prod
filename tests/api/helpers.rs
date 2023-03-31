@@ -3,7 +3,7 @@ use sqlx::{Connection, Executor, PgConnection, PgPool};
 use wiremock::MockServer;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
-    startup::{Application, get_connection_pool},
+    startup::{get_connection_pool, Application},
     telemetry::{get_subscriber, init_subscriber},
 };
 
@@ -22,7 +22,7 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 pub struct TestApp {
     pub address: String,
     pub connection_pool: PgPool,
-    pub email_server: MockServer
+    pub email_server: MockServer,
 }
 
 impl TestApp {
@@ -58,7 +58,7 @@ pub async fn spawn_app() -> TestApp {
     TestApp {
         address,
         connection_pool: get_connection_pool(&config.database),
-        email_server
+        email_server,
     }
 }
 

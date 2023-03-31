@@ -1,34 +1,34 @@
-use crate::configuration::{Settings, DatabaseSettings};
+use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
 use crate::routes::{health_check, subscribe};
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
-use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
+use sqlx::PgPool;
 use std::net::TcpListener;
 use tracing_actix_web::TracingLogger;
 
 pub struct Application {
     port: u16,
-    server: Server
+    server: Server,
 }
 
 impl Application {
     pub async fn build(config: Settings) -> Result<Self, std::io::Error> {
         let connection_pool = get_connection_pool(&config.database);
-        let sender = config.email_client.sender().expect("Could not parse sender email");
+        let sender = config
+            .email_client
+            .sender()
+            .expect("Could not parse sender email");
         let timeout = config.email_client.timeout();
         let email_client = EmailClient::new(
             config.email_client.base_url,
             sender,
             config.email_client.token,
-            timeout
+            timeout,
         );
-        let address = format!(
-            "{}:{}",
-            config.application.host, config.application.port
-        );
+        let address = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
         let server = run(listener, connection_pool, email_client)?;
@@ -51,7 +51,7 @@ pub fn get_connection_pool(config: &DatabaseSettings) -> PgPool {
 pub fn run(
     listener: TcpListener,
     connection_pool: PgPool,
-    email_client: EmailClient
+    email_client: EmailClient,
 ) -> Result<Server, std::io::Error> {
     let connection_pool = Data::new(connection_pool);
     let email_client = Data::new(email_client);

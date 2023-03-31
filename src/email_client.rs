@@ -1,5 +1,5 @@
 use reqwest::Client;
-use secrecy::{Secret, ExposeSecret};
+use secrecy::{ExposeSecret, Secret};
 
 use crate::domain::SubscriberEmail;
 
@@ -8,7 +8,7 @@ pub struct EmailClient {
     base_url: reqwest::Url,
     http_client: Client,
     sender: SubscriberEmail,
-    token: Secret<String>
+    token: Secret<String>,
 }
 
 impl EmailClient {
@@ -16,17 +16,14 @@ impl EmailClient {
         base_url: String,
         sender: SubscriberEmail,
         token: Secret<String>,
-        timeout: std::time::Duration
+        timeout: std::time::Duration,
     ) -> Self {
-        let http_client = Client::builder()
-            .timeout(timeout)
-            .build()
-            .unwrap();
+        let http_client = Client::builder().timeout(timeout).build().unwrap();
         Self {
             http_client,
             base_url: reqwest::Url::parse(base_url.as_str()).expect("Could not parse URL"),
             sender,
-            token
+            token,
         }
     }
     pub async fn send_email(
@@ -34,17 +31,19 @@ impl EmailClient {
         recipient: SubscriberEmail,
         subject: &str,
         html_content: &str,
-        text_content: &str
+        text_content: &str,
     ) -> Result<(), reqwest::Error> {
-        let url = reqwest::Url::join(&self.base_url, "/email").expect("Could not build request url");
+        let url =
+            reqwest::Url::join(&self.base_url, "/email").expect("Could not build request url");
         let request_body = SendEmailRequest {
             from: self.sender.as_ref(),
             to: recipient.as_ref(),
             subject,
             html_body: html_content,
-            text_body: text_content
+            text_body: text_content,
         };
-        let _builder = self.http_client
+        let _builder = self
+            .http_client
             .post(url.as_str())
             .json(&request_body)
             .header("X-Postmark-Server-Token", self.token.expose_secret())
@@ -64,20 +63,20 @@ struct SendEmailRequest<'a> {
     to: &'a str,
     subject: &'a str,
     html_body: &'a str,
-    text_body: &'a str 
+    text_body: &'a str,
 }
 
 #[cfg(test)]
 mod tests {
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
-    use claims::{assert_ok, assert_err};
+    use claims::{assert_err, assert_ok};
     use fake::faker::internet::en::SafeEmail;
     use fake::faker::lorem::en::{Paragraph, Sentence};
     use fake::{Fake, Faker};
     use secrecy::Secret;
+    use wiremock::matchers::{any, header, header_exists, method, path};
     use wiremock::Request;
-    use wiremock::matchers::{header_exists, header, path, method, any};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
     struct SendEmailBodyMatcher;
@@ -113,7 +112,8 @@ mod tests {
             .mount(&mock_server)
             .await;
         // Act
-        let _ = email_client.send_email(email(), &subject(), &content(), &content())
+        let _ = email_client
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
     }
@@ -129,7 +129,8 @@ mod tests {
             .mount(&mock_server)
             .await;
         // Act
-        let outcome = email_client.send_email(email(), &subject(), &content(), &content())
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
         assert_ok!(outcome);
@@ -146,7 +147,8 @@ mod tests {
             .mount(&mock_server)
             .await;
         // Act
-        let outcome = email_client.send_email(email(), &subject(), &content(), &content())
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
         assert_err!(outcome);
@@ -157,15 +159,15 @@ mod tests {
         // Arrange
         let mock_server = MockServer::start().await;
         let email_client = email_client(mock_server.uri());
-        let response = ResponseTemplate::new(200)
-            .set_delay(std::time::Duration::from_secs(180));
+        let response = ResponseTemplate::new(200).set_delay(std::time::Duration::from_secs(180));
         Mock::given(any())
             .respond_with(response)
             .expect(1)
             .mount(&mock_server)
             .await;
         // Act
-        let outcome = email_client.send_email(email(), &subject(), &content(), &content())
+        let outcome = email_client
+            .send_email(email(), &subject(), &content(), &content())
             .await;
         // Assert
         assert_err!(outcome);
@@ -192,7 +194,7 @@ mod tests {
             base_url,
             email(),
             Secret::new(Faker.fake()),
-            std::time::Duration::from_millis(200)
+            std::time::Duration::from_millis(200),
         )
     }
 }

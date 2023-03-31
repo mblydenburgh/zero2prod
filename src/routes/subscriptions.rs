@@ -3,7 +3,10 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::{domain::{NewSubscriber, SubscriberEmail, SubscriberName}, email_client::EmailClient};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    email_client::EmailClient,
+};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
@@ -37,7 +40,7 @@ impl TryFrom<FormData> for NewSubscriber {
 pub async fn subscribe(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
-    email_client: web::Data<EmailClient>
+    email_client: web::Data<EmailClient>,
 ) -> HttpResponse {
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an imple TryInto for free
@@ -45,15 +48,22 @@ pub async fn subscribe(
         Ok(result) => result,
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    if save_subscriber(&new_subscriber, &connection_pool).await.is_err() {
+    if save_subscriber(&new_subscriber, &connection_pool)
+        .await
+        .is_err()
+    {
         return HttpResponse::InternalServerError().finish();
     }
-    if email_client.send_email(
-        new_subscriber.email,
-        "Welcome!",
-        "Welcome to our newsletter",
-        "Welcome to my newsletter"
-    ).await.is_err() {
+    if email_client
+        .send_email(
+            new_subscriber.email,
+            "Welcome!",
+            "Welcome to our newsletter",
+            "Welcome to my newsletter",
+        )
+        .await
+        .is_err()
+    {
         return HttpResponse::InternalServerError().finish();
     }
     HttpResponse::Ok().finish()
