@@ -23,7 +23,7 @@ pub struct TestApp {
     pub address: String,
     pub connection_pool: PgPool,
     pub email_server: MockServer,
-    pub port: u16
+    pub port: u16,
 }
 
 impl TestApp {
@@ -61,7 +61,7 @@ pub async fn spawn_app() -> TestApp {
         address,
         connection_pool: get_connection_pool(&config.database),
         email_server,
-        port
+        port,
     }
 }
 

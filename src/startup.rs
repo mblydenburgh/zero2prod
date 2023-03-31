@@ -1,6 +1,6 @@
 use crate::configuration::{DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
-use crate::routes::{health_check, subscribe, confirm};
+use crate::routes::{confirm, health_check, subscribe};
 use actix_web::dev::Server;
 use actix_web::web::Data;
 use actix_web::{web, App, HttpServer};
@@ -55,7 +55,7 @@ pub fn run(
     listener: TcpListener,
     connection_pool: PgPool,
     email_client: EmailClient,
-    base_url: String
+    base_url: String,
 ) -> Result<Server, std::io::Error> {
     let connection_pool = Data::new(connection_pool);
     let email_client = Data::new(email_client);

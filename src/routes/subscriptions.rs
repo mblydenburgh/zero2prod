@@ -5,7 +5,8 @@ use uuid::Uuid;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
-    email_client::EmailClient, startup::ApplicationBaseUrl,
+    email_client::EmailClient,
+    startup::ApplicationBaseUrl,
 };
 
 #[derive(serde::Deserialize)]
@@ -41,7 +42,7 @@ pub async fn subscribe(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
-    base_url: web::Data<ApplicationBaseUrl>
+    base_url: web::Data<ApplicationBaseUrl>,
 ) -> HttpResponse {
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an imple TryInto for free
@@ -71,9 +72,12 @@ pub async fn subscribe(
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     subscriber: NewSubscriber,
-    base_url: &str 
+    base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = format!("{}/subscriptions/confirm?subscription_token=token", base_url);
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=token",
+        base_url
+    );
     let subject = "Welcome!";
     let html_content = &format!(
         "Welcome to my newsletter! <br>\

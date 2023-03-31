@@ -1,5 +1,8 @@
 use reqwest::Url;
-use wiremock::{Mock, matchers::{path, method}, ResponseTemplate};
+use wiremock::{
+    matchers::{method, path},
+    Mock, ResponseTemplate,
+};
 
 use crate::helpers::spawn_app;
 
@@ -42,4 +45,3 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
     let response = reqwest::get(confirm_link).await.unwrap();
     assert_eq!(response.status().as_u16(), 200);
 }
-
