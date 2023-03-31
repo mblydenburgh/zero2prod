@@ -58,13 +58,12 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
             .links(s)
             .filter(|l| *l.kind() == linkify::LinkKind::Url)
             .collect();
-        assert_eq!(links.len(),1);
+        assert_eq!(links.len(), 1);
         links[0].as_str().to_owned()
     };
     let html_link = get_link(&body["HtmlBody"].as_str().unwrap());
     let test_link = get_link(&body["TextBody"].as_str().unwrap());
-    assert_eq!(html_link,test_link);
-        
+    assert_eq!(html_link, test_link);
 }
 
 #[tokio::test]
