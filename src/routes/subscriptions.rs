@@ -56,7 +56,8 @@ pub async fn subscribe(
     }
     if send_confirmation_email(&email_client, new_subscriber)
         .await
-        .is_err() {
+        .is_err()
+    {
         return HttpResponse::InternalServerError().finish();
     }
     HttpResponse::Ok().finish()
@@ -68,14 +69,17 @@ pub async fn subscribe(
 )]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
-    subscriber: NewSubscriber
+    subscriber: NewSubscriber,
 ) -> Result<(), reqwest::Error> {
     let confirmation_link = "https://there-is-no-spoon.com/subscriptions/confirm";
     let subject = "Welcome!";
-    let html_content = &format!("Welcome to my newsletter! <br>\
+    let html_content = &format!(
+        "Welcome to my newsletter! <br>\
         Click <a href=\"{confirmation_link}\">here</a> to confirm your subscription."
     );
-    let text_content = &format!("Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription.");
+    let text_content = &format!(
+        "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
+    );
     email_client
         .send_email(subscriber.email, subject, html_content, text_content)
         .await
