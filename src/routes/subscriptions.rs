@@ -42,7 +42,6 @@ pub async fn subscribe(
     connection_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
 ) -> HttpResponse {
-    let confirmation_link = "https://there-is-no-spoon.com/subscriptions/confirm";
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an imple TryInto for free
     let new_subscriber = match NewSubscriber::try_from(form.0) {
@@ -55,24 +54,31 @@ pub async fn subscribe(
     {
         return HttpResponse::InternalServerError().finish();
     }
-    if email_client
-        .send_email(
-            new_subscriber.email,
-            "Welcome!",
-            &format!(
-                "Welcome to my newsletter! <br>\
-                Click <a href=\"{confirmation_link}\">here</a> to confirm your subscription."
-            ),
-            &format!(
-                "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
-            ),
-        )
+    if send_confirmation_email(&email_client, new_subscriber)
         .await
-        .is_err()
-    {
+        .is_err() {
         return HttpResponse::InternalServerError().finish();
     }
     HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(
+    name = "Send confirmation email to new subscriber",
+    skip(email_client, subscriber)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    subscriber: NewSubscriber
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = "https://there-is-no-spoon.com/subscriptions/confirm";
+    let subject = "Welcome!";
+    let html_content = &format!("Welcome to my newsletter! <br>\
+        Click <a href=\"{confirmation_link}\">here</a> to confirm your subscription."
+    );
+    let text_content = &format!("Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription.");
+    email_client
+        .send_email(subscriber.email, subject, html_content, text_content)
+        .await
 }
 
 #[tracing::instrument(
@@ -86,7 +92,7 @@ pub async fn save_subscriber(
     sqlx::query!(
         r#"
         INSERT INTO subscriptions (id, email, name, subscribed_at, status)
-        VALUES ($1, $2, $3, $4, 'confirmed')
+        VALUES ($1, $2, $3, $4, 'pending_confirmation')
         "#,
         Uuid::new_v4(),
         new_subscriber.email.as_ref(),
