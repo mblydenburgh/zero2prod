@@ -42,6 +42,7 @@ pub async fn subscribe(
     connection_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
 ) -> HttpResponse {
+    let confirmation_link = "https://there-is-no-spoon.com/subscriptions/confirm";
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an imple TryInto for free
     let new_subscriber = match NewSubscriber::try_from(form.0) {
@@ -58,8 +59,15 @@ pub async fn subscribe(
         .send_email(
             new_subscriber.email,
             "Welcome!",
-            "Welcome to our newsletter",
-            "Welcome to my newsletter",
+            &format!(
+                "Welcome to my newsletter! <br>\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+                confirmation_link
+            ),
+            &format!(
+                "Welcome to my newsletter!\nVisit {} to confirm your subscription.",
+                confirmation_link
+            ),
         )
         .await
         .is_err()
