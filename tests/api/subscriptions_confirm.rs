@@ -28,7 +28,7 @@ async fn the_link_returned_by_subscribe_returns_a_200_if_called() {
 
     // Get the received request off of the mock email server and the confirm link out of it
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
-    let confirm_link = app.get_confirmation_links(&email_request);
+    let confirm_link = app.get_confirmation_links(email_request);
 
     // Make request to confirmation link
     let response = reqwest::get(confirm_link.html).await.unwrap();
@@ -49,7 +49,7 @@ async fn clicking_on_a_confirm_link_confirms_a_subscriber_in_db() {
 
     // Get the received request off of the mock email server and the confirm link out of it
     let email_request = &app.email_server.received_requests().await.unwrap()[0];
-    let confirm_links = app.get_confirmation_links(&email_request);
+    let confirm_links = app.get_confirmation_links(email_request);
 
     // Make request to confirm link
     reqwest::get(confirm_links.html)

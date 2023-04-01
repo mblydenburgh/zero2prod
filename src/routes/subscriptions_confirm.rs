@@ -54,7 +54,7 @@ pub async fn get_subscriber_id_from_token(
         err
     })?;
     // result is a db row, with the selected fields as properties to access of the result struct
-    return Ok(result.map(|res| res.subscriber_id));
+    Ok(result.map(|res| res.subscriber_id))
 }
 
 #[tracing::instrument(name = "Updating subscriber status", skip(subscriber_id))]
@@ -76,5 +76,5 @@ pub async fn update_subscriber_status(
         tracing::error!("Failed to execute query: {:?}", err);
         err
     })?;
-    return Ok(());
+    Ok(())
 }
