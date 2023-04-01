@@ -3,5 +3,5 @@ application:
 database:
   require_ssl: true
 email_client:
-  base_url: "http://api.postmarkapp.com"
+  base_url: "https://api.postmarkapp.com"
   sender_email: "michael.blydenburgh@libertymutual.com"
