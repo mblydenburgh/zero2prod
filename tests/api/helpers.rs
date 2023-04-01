@@ -1,4 +1,5 @@
 use once_cell::sync::Lazy;
+use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use wiremock::MockServer;
 use zero2prod::{
@@ -19,6 +20,11 @@ static TRACING: Lazy<()> = Lazy::new(|| {
     }
 });
 
+pub struct ConfirmationLinks {
+    pub html: reqwest::Url,
+    pub plain_text: reqwest::Url,
+}
+
 pub struct TestApp {
     pub address: String,
     pub connection_pool: PgPool,
@@ -35,6 +41,24 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to execute request")
+    }
+    pub fn get_confirmation_links(&self, email_request: &wiremock::Request) -> ConfirmationLinks {
+        let body: serde_json::Value = serde_json::from_slice(&email_request.body).unwrap();
+        let get_link = |s: &str| {
+            let links: Vec<_> = linkify::LinkFinder::new()
+                .links(s)
+                .filter(|l| *l.kind() == linkify::LinkKind::Url)
+                .collect();
+            assert_eq!(links.len(), 1);
+            let raw_confirm_link = String::from(links[0].as_str());
+            let mut confirm_link = Url::parse(&raw_confirm_link).unwrap();
+            assert_eq!(confirm_link.host_str().unwrap(), "127.0.0.1");
+            confirm_link.set_port(Some(self.port)).unwrap();
+            confirm_link
+        };
+        let html = get_link(&body["HtmlBody"].as_str().unwrap());
+        let plain_text = get_link(&body["TextBody"].as_str().unwrap());
+        ConfirmationLinks { html, plain_text }
     }
 }
 
