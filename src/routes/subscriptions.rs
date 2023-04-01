@@ -2,8 +2,8 @@ use actix_web::{web, HttpResponse};
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{PgPool, Postgres, Transaction};
-use uuid::Uuid;
 use tracing::info;
+use uuid::Uuid;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
@@ -106,8 +106,8 @@ pub async fn send_confirmation_email(
     let text_content = &format!(
         "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
     );
-    info!("confirmation link: {}", confirmation_link);
-    info!("sending to subscriber: {}", subscriber.email);
+    info!("confirmation link: {:?}", confirmation_link);
+    info!("sending to subscriber: {:?}", subscriber.email);
     email_client
         .send_email(subscriber.email, subject, html_content, text_content)
         .await
