@@ -96,6 +96,7 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
                 .separator("__"),
         )
         .build()?;
+    info!("settings: {:?}", settings);
     settings.try_deserialize::<Settings>()
 }
 
