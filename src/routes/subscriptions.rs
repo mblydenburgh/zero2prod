@@ -3,6 +3,7 @@ use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{PgPool, Postgres, Transaction};
 use uuid::Uuid;
+use tracing::info;
 
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
