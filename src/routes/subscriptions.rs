@@ -67,6 +67,7 @@ pub async fn subscribe(
         .await
         .is_err()
     {
+        info!("error saving token");
         return HttpResponse::InternalServerError().finish();
     }
     // Send cofirmation email to subscriber
@@ -74,9 +75,11 @@ pub async fn subscribe(
         .await
         .is_err()
     {
+        info!("error sending confirm email");
         return HttpResponse::InternalServerError().finish();
     }
     if transaction.commit().await.is_err() {
+        info!("error commiting transaction");
         return HttpResponse::InternalServerError().finish();
     }
     HttpResponse::Ok().finish()
@@ -102,6 +105,8 @@ pub async fn send_confirmation_email(
     let text_content = &format!(
         "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
     );
+    info!("confirmation link: {}", confirmation_link);
+    info!("sending to subscriber: {}", subscriber.email);
     email_client
         .send_email(subscriber.email, subject, html_content, text_content)
         .await
