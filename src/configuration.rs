@@ -4,7 +4,6 @@ use sqlx::{
     postgres::{PgConnectOptions, PgSslMode},
     ConnectOptions,
 };
-use tracing::info;
 
 use crate::domain::SubscriberEmail;
 
@@ -80,13 +79,9 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENV");
-    info!("using env: {:?}", env);
     let env_filename = format!("{}.yml", env.as_str());
-    info!("Using  env_file: {}", env_filename);
     let prod_file = config::File::from(config_dir.join(env_filename));
-    info!("prod file: {:?}", prod_file);
     let base_file = config::File::from(config_dir.join("base.yml"));
-    info!("base file: {:?}", base_file);
     let settings = config::Config::builder()
         .add_source(base_file)
         .add_source(prod_file)
@@ -96,7 +91,6 @@ pub fn get_configuration() -> Result<Settings, config::ConfigError> {
                 .separator("__"),
         )
         .build()?;
-    info!("settings: {:?}", settings);
     settings.try_deserialize::<Settings>()
 }
 
