@@ -1,4 +1,4 @@
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpResponse, ResponseError };
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
 use sqlx::{PgPool, Postgres, Transaction};
@@ -32,6 +32,15 @@ impl TryFrom<FormData> for NewSubscriber {
     }
 }
 
+#[derive(Debug)]
+pub struct StoreTokenError(sqlx::Error);
+impl std::fmt::Display for StoreTokenError{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"A database error was encountered while trying to store a token")
+    }
+}
+impl ResponseError for StoreTokenError {}
+
 #[tracing::instrument(
     name = "Adding a new subscriber",
     skip(form, connection_pool, base_url),
@@ -45,45 +54,36 @@ pub async fn subscribe(
     connection_pool: web::Data<PgPool>,
     email_client: web::Data<EmailClient>,
     base_url: web::Data<ApplicationBaseUrl>,
-) -> HttpResponse {
+) -> Result<HttpResponse, actix_web::Error> {
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an imple TryInto for free
     let new_subscriber = match NewSubscriber::try_from(form.0) {
         Ok(result) => result,
-        Err(_) => return HttpResponse::BadRequest().finish(),
+        Err(_) => return Ok(HttpResponse::BadRequest().finish()),
     };
     // Cnstruct new DB Transaction instance to pass into db method instead of the pool itself
     let mut transaction = match connection_pool.begin().await {
         Ok(transaction) => transaction,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
     // Save subscriber to db with pending_confirm status
     let subscriber_id = match save_subscriber(&new_subscriber, &mut transaction).await {
         Ok(id) => id,
-        Err(_) => return HttpResponse::InternalServerError().finish(),
+        Err(_) => return Ok(HttpResponse::InternalServerError().finish()),
     };
     // Generate and save token to send back in confirm email
     let subscribe_token = generate_subscribe_token();
-    if save_token(subscriber_id, &subscribe_token, &mut transaction)
-        .await
-        .is_err()
-    {
-        info!("error saving token");
-        return HttpResponse::InternalServerError().finish();
-    }
-    // Send cofirmation email to subscriber
+    save_token(subscriber_id, &subscribe_token, &mut transaction).await?;
     if send_confirmation_email(&email_client, new_subscriber, &base_url.0, &subscribe_token)
         .await
         .is_err()
     {
-        info!("error sending confirm email");
-        return HttpResponse::InternalServerError().finish();
+        return Ok(HttpResponse::InternalServerError().finish());
     }
     if transaction.commit().await.is_err() {
-        info!("error commiting transaction");
-        return HttpResponse::InternalServerError().finish();
+        return Ok(HttpResponse::InternalServerError().finish());
     }
-    HttpResponse::Ok().finish()
+    Ok(HttpResponse::Ok().finish())
 }
 
 #[tracing::instrument(
@@ -149,7 +149,7 @@ pub async fn save_token(
     subscriber_id: Uuid,
     subscribe_token: &str,
     transaction: &mut Transaction<'_, Postgres>,
-) -> Result<(), sqlx::Error> {
+) -> Result<(), StoreTokenError> {
     sqlx::query!(
         r#"
         INSERT INTO subscription_tokens (subscription_token, subscriber_id)
@@ -162,7 +162,7 @@ pub async fn save_token(
     .await
     .map_err(|err| {
         tracing::error!("Failed to execute insert: {:?}", err);
-        err
+        StoreTokenError(err)
     })?;
     Ok(())
 }

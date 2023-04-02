@@ -111,3 +111,16 @@ async fn subsribe_returns_400_for_invalid_req() {
         );
     }
 }
+
+#[tokio::test]
+async fn subscribe_fails_if_there_is_a_fatal_db_error() {
+    let app = spawn_app().await;
+    let body = "name=bob%20bobbington&email=bob%40test.com";
+    // Mess up the db to cause error
+    sqlx::query!("ALTER TABLE subscription_tokens DROP COLUMN subscription_token")
+        .execute(&app.connection_pool)
+        .await
+        .unwrap();
+    let response = app.post_subscription(body.into()).await;
+    assert_eq!(response.status().as_u16(), 500);
+}
