@@ -52,7 +52,10 @@ pub async fn subscribe(
     let new_subscriber =
         NewSubscriber::try_from(form.0).map_err(SubscribeError::ValidationError)?;
     // Cnstruct new DB Transaction instance to pass into db method instead of the pool itself
-    let mut transaction = connection_pool.begin().await.context("Failed to get a connection from the pool")?;
+    let mut transaction = connection_pool
+        .begin()
+        .await
+        .context("Failed to get a connection from the pool")?;
     // Save subscriber to db with pending_confirm status
     let subscriber_id = save_subscriber(&new_subscriber, &mut transaction)
         .await
@@ -62,7 +65,10 @@ pub async fn subscribe(
     save_token(subscriber_id, &subscribe_token, &mut transaction)
         .await
         .context("Failed to save token for new subscriber")?;
-    transaction.commit().await.context("Failed to save SQL transaction to save new subscriber details")?;
+    transaction
+        .commit()
+        .await
+        .context("Failed to save SQL transaction to save new subscriber details")?;
     send_confirmation_email(&email_client, new_subscriber, &base_url.0, &subscribe_token)
         .await
         .context("Failed to send a confirmation email")?;
@@ -115,9 +121,7 @@ pub async fn save_subscriber(
     )
     .execute(transaction)
     .await
-    .map_err(|err| {
-        err
-    })?;
+    .map_err(|err| err)?;
     Ok(subscriber_id)
 }
 
@@ -140,9 +144,7 @@ pub async fn save_token(
     )
     .execute(transaction)
     .await
-    .map_err(|err| {
-        StoreTokenError(err)
-    })?;
+    .map_err(|err| StoreTokenError(err))?;
     Ok(())
 }
 
