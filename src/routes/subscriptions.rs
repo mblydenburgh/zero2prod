@@ -120,8 +120,7 @@ pub async fn save_subscriber(
         Utc::now()
     )
     .execute(transaction)
-    .await
-    .map_err(|err| err)?;
+    .await?;
     Ok(subscriber_id)
 }
 
@@ -144,7 +143,7 @@ pub async fn save_token(
     )
     .execute(transaction)
     .await
-    .map_err(|err| StoreTokenError(err))?;
+    .map_err(StoreTokenError)?;
     Ok(())
 }
 
@@ -210,10 +209,10 @@ fn error_chain_fmt(
     err: &impl std::error::Error,
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {
-    write!(f, "{}\n", err)?;
+    writeln!(f, "{err}")?;
     let mut current = err.source();
     while let Some(cause) = current {
-        writeln!(f, "Caused by: {}", cause)?;
+        writeln!(f, "Caused by: {cause}")?;
         current = cause.source();
     }
     Ok(())
