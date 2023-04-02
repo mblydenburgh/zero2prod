@@ -48,24 +48,48 @@ pub async fn subscribe(
 ) -> Result<HttpResponse, SubscribeError> {
     // alternate way to parse would be form.0.try_into(), since any type that
     // implements TryFrom gets an impl TryInto for free
-    let new_subscriber = NewSubscriber::try_from(form.0).map_err(SubscribeError::ValidationError)?;
+    let new_subscriber =
+        NewSubscriber::try_from(form.0).map_err(SubscribeError::ValidationError)?;
     // Cnstruct new DB Transaction instance to pass into db method instead of the pool itself
-    let mut transaction = connection_pool
-        .begin()
-        .await
-        .map_err(SubscribeError::PoolError)?;
+    let mut transaction = connection_pool.begin().await.map_err(|err| {
+        SubscribeError::UnexpectedError(
+            Box::new(err),
+            "Failed to get a connection from the pool".into(),
+        )
+    })?;
     // Save subscriber to db with pending_confirm status
     let subscriber_id = save_subscriber(&new_subscriber, &mut transaction)
         .await
-        .map_err(SubscribeError::InsertSubscriberError)?;
+        .map_err(|err| {
+            SubscribeError::UnexpectedError(
+                Box::new(err),
+                "Failed to save new subscriber to the subscribers table".into(),
+            )
+        })?;
     // Generate and save token to send back in confirm email
     let subscribe_token = generate_subscribe_token();
-    save_token(subscriber_id, &subscribe_token, &mut transaction).await?;
-    transaction
-        .commit()
+    save_token(subscriber_id, &subscribe_token, &mut transaction)
         .await
-        .map_err(SubscribeError::TransactionCommitError)?;
-    send_confirmation_email(&email_client, new_subscriber, &base_url.0, &subscribe_token).await?;
+        .map_err(|err| {
+            SubscribeError::UnexpectedError(
+                Box::new(err),
+                "Failed to save token for new subscriber".into(),
+            )
+        })?;
+    transaction.commit().await.map_err(|err| {
+        SubscribeError::UnexpectedError(
+            Box::new(err),
+            "Failed to save SQL transaction to save new subscriber details".into(),
+        )
+    })?;
+    send_confirmation_email(&email_client, new_subscriber, &base_url.0, &subscribe_token)
+        .await
+        .map_err(|err| {
+            SubscribeError::UnexpectedError(
+                Box::new(err),
+                "Failed to send a confirmation email".into(),
+            )
+        })?;
     Ok(HttpResponse::Ok().finish())
 }
 
@@ -164,28 +188,9 @@ fn generate_subscribe_token() -> String {
 pub enum SubscribeError {
     #[error("{0}")]
     ValidationError(String),
-    #[error("Failed to acquire connection from pool")]
-    PoolError(#[source] sqlx::Error),
-    #[error("Failed to insert new subscriber in the databse")]
-    InsertSubscriberError(#[source] sqlx::Error),
-    #[error("Failed to commit SQL transaction to store a new subscriber")]
-    TransactionCommitError(#[source] sqlx::Error),
-    #[error("Failed to store confirmation token for new subscriber")]
-    StoreTokenError(#[from] StoreTokenError),
-    #[error("Failed to send confirmation email")]
-    SendEmailError(#[from] reqwest::Error),
+    #[error("{1}")]
+    UnexpectedError(#[source] Box<dyn std::error::Error>, String),
 }
-// derving #[from] does this automatically for us
-// impl From<reqwest::Error> for SubscribeError {
-//     fn from(value: reqwest::Error) -> Self {
-//         Self::SendEmailError(value)
-//     }
-// }
-// impl From<StoreTokenError> for SubscribeError {
-//     fn from(value: StoreTokenError) -> Self {
-//         Self::StoreTokenError(value)
-//     }
-// }
 impl From<String> for SubscribeError {
     fn from(value: String) -> Self {
         Self::ValidationError(value)
@@ -196,49 +201,11 @@ impl std::fmt::Debug for SubscribeError {
         error_chain_fmt(self, f)
     }
 }
-// deriving thiserror:Error on SubscribeError does this for us
-// impl std::fmt::Display for SubscribeError {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         match self {
-//             SubscribeError::ValidationError(err) => write!(f, "{}", err),
-//             SubscribeError::PoolError(_) => write!(f, "Failed to acquire connection from pool"),
-//             SubscribeError::InsertSubscriberError(_) => {
-//                 write!(f, "Failed to insert new subscriber into subscriber table")
-//             }
-//             SubscribeError::TransactionCommitError(_) => {
-//                 write!(f, "Failed to commit transaction to store new subscrber")
-//             }
-//             SubscribeError::StoreTokenError(_) => {
-//                 write!(f, "Failed to store confirmation token for new subscriber")
-//             }
-//             SubscribeError::SendEmailError(_) => {
-//                 write!(f, "Failed to send confimation email to new subscriber")
-//             }
-//         }
-//     }
-// }
-// impl std::error::Error for SubscribeError {
-//     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-//         match self {
-//             // &str doesnt implement Error, so we consider it the root cause
-//             SubscribeError::ValidationError(_) => None,
-//             SubscribeError::PoolError(err) => Some(err),
-//             SubscribeError::InsertSubscriberError(err) => Some(err),
-//             SubscribeError::TransactionCommitError(err) => Some(err),
-//             SubscribeError::StoreTokenError(err) => Some(err),
-//             SubscribeError::SendEmailError(err) => Some(err),
-//         }
-//     }
-// }
 impl ResponseError for SubscribeError {
     fn status_code(&self) -> StatusCode {
         match self {
             SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST,
-            SubscribeError::TransactionCommitError(_)
-            | SubscribeError::InsertSubscriberError(_)
-            | SubscribeError::PoolError(_)
-            | SubscribeError::StoreTokenError(_)
-            | SubscribeError::SendEmailError(_) => StatusCode::INTERNAL_SERVER_ERROR,
+            SubscribeError::UnexpectedError(_, _) => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
 }
