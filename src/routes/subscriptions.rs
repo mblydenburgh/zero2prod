@@ -96,7 +96,7 @@ pub async fn send_confirmation_email(
         "Welcome to my newsletter!\nVisit {confirmation_link} to confirm your subscription."
     );
     email_client
-        .send_email(subscriber.email, subject, html_content, text_content)
+        .send_email(&subscriber.email, subject, html_content, text_content)
         .await
 }
 
@@ -205,7 +205,7 @@ impl std::fmt::Debug for StoreTokenError {
     }
 }
 // Iterate over error chain and print in a standard way
-fn error_chain_fmt(
+pub fn error_chain_fmt(
     err: &impl std::error::Error,
     f: &mut std::fmt::Formatter<'_>,
 ) -> std::fmt::Result {

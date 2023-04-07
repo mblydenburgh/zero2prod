@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use reqwest::Url;
+use reqwest::{Client, Url};
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use wiremock::MockServer;
 use zero2prod::{
@@ -59,6 +59,14 @@ impl TestApp {
         let html = get_link(body["HtmlBody"].as_str().unwrap());
         let plain_text = get_link(body["TextBody"].as_str().unwrap());
         ConfirmationLinks { html, plain_text }
+    }
+    pub async fn post_newsletter(&self, body: serde_json::Value) -> reqwest::Response {
+        reqwest::Client::new()
+            .post(&format!("{}/newsletters", &self.address))
+            .json(&body)
+            .send()
+            .await
+            .expect("Failed to execute request")
     }
 }
 
