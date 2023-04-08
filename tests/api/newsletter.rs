@@ -94,8 +94,10 @@ async fn request_missing_authorization_header_are_rejected() {
         .expect("Failed to send request");
 
     assert_eq!(response.status().as_u16(), 401);
-    assert_eq!(response.headers()["WWW-Authenticate"], r#"Basic realm="publish""#);
-
+    assert_eq!(
+        response.headers()["WWW-Authenticate"],
+        r#"Basic realm="publish""#
+    );
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
