@@ -1,5 +1,5 @@
 use argon2::password_hash::SaltString;
-use argon2::{Argon2, PasswordHasher};
+use argon2::{Argon2, PasswordHasher, Params};
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
@@ -91,7 +91,11 @@ impl TestUser {
     }
     pub async fn store(&self, pool: &PgPool) {
         let salt = SaltString::generate(&mut rand::thread_rng());
-        let password_hash = Argon2::default()
+        let password_hash = Argon2::new(
+            argon2::Algorithm::Argon2id,
+            argon2::Version::V0x13,
+            Params::new(15000, 2, 1, None).unwrap()
+        )
             .hash_password(self.password.as_bytes(), &salt)
             .unwrap()
             .to_string();
