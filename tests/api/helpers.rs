@@ -1,3 +1,5 @@
+use argon2::password_hash::{SaltString, Salt};
+use argon2::{Argon2, PasswordHasher};
 use once_cell::sync::Lazy;
 use reqwest::Url;
 use sha3::Digest;
@@ -32,7 +34,7 @@ pub struct TestApp {
     pub connection_pool: PgPool,
     pub email_server: MockServer,
     pub port: u16,
-    pub test_user: TestUser
+    pub test_user: TestUser,
 }
 
 impl TestApp {
@@ -77,7 +79,7 @@ impl TestApp {
 pub struct TestUser {
     pub user_id: Uuid,
     pub username: String,
-    pub password: String
+    pub password: String,
 }
 
 impl TestUser {
@@ -85,12 +87,15 @@ impl TestUser {
         Self {
             user_id: Uuid::new_v4(),
             username: Uuid::new_v4().to_string(),
-            password: Uuid::new_v4().to_string()
+            password: Uuid::new_v4().to_string(),
         }
     }
     pub async fn store(&self, pool: &PgPool) {
-        let password_hash = sha3::Sha3_256::digest(self.password.as_bytes());
-        let password_hash = format!("{:x}", password_hash);
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        let password_hash = Argon2::default()
+            .hash_password(self.password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash) VALUES ($1, $2, $3)",
             self.user_id,
@@ -127,7 +132,7 @@ pub async fn spawn_app() -> TestApp {
         connection_pool: get_connection_pool(&config.database),
         email_server,
         port,
-        test_user: TestUser::generate()
+        test_user: TestUser::generate(),
     };
     app.test_user.store(&app.connection_pool).await;
     app
