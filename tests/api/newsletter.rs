@@ -121,7 +121,10 @@ async fn non_existing_user_is_rejected() {
         .await
         .expect("Failed to execute request");
     assert_eq!(401, response.status().as_u16());
-    assert_eq!(r#"Basic realm="publish""#, response.headers()["WWW-Authenticate"]);
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["WWW-Authenticate"]
+    );
 }
 
 #[tokio::test]
@@ -132,7 +135,7 @@ async fn invalid_password_is_rejected() {
     assert_ne!(app.test_user.password, password);
 
     let response = reqwest::Client::new()
-         .post(&format!("{}/newsletters", &app.address))
+        .post(&format!("{}/newsletters", &app.address))
         .basic_auth(username, Some(password))
         .json(&serde_json::json!({
             "title": "Title",
@@ -145,8 +148,10 @@ async fn invalid_password_is_rejected() {
         .await
         .expect("Failed to execute request");
     assert_eq!(401, response.status().as_u16());
-    assert_eq!(r#"Basic realm="publish""#, response.headers()["WWW-Authenticate"]);
-
+    assert_eq!(
+        r#"Basic realm="publish""#,
+        response.headers()["WWW-Authenticate"]
+    );
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
