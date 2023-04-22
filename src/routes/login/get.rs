@@ -1,78 +1,14 @@
-use crate::startup::HmacSecret;
-use actix_web::HttpResponse;
+use actix_web::{HttpResponse, HttpRequest};
 use actix_web::http::header::ContentType;
-use actix_web::web;
-use hmac::{Hmac, Mac};
-use secrecy::ExposeSecret;
 
-#[derive(serde::Deserialize)]
-pub struct QueryParams {
-    error: String,
-    tag: String
-}
-
-impl QueryParams {
-    fn verify(self, secret: &HmacSecret) -> Result<String, anyhow::Error> {
-        let tag = hex::decode(self.tag)?;
-        let query_string = format!(
-            "error={}",
-            urlencoding::Encoded::new(&self.error)
-        );
-
-        let mut mac = Hmac::<sha2::Sha256>::new_from_slice(
-            secret.0.expose_secret().as_bytes()
-        ).unwrap();
-        mac.update(query_string.as_bytes());
-        mac.verify_slice(&tag)?;
-
-        Ok(self.error)
-    }
-}
-
-pub async fn login_form(
-    query: Option<web::Query<QueryParams>>,
-    secret: web::Data<HmacSecret>
-) -> HttpResponse {
-    let error_html = match query {
+pub async fn login_form(request: HttpRequest) -> HttpResponse {
+    let error_html = match request.cookie("_flash") {
         None => "".into(),
-        Some(query) => match query.0.verify(&secret) {
-            Ok(error) => {
-                format!("<p><i>{}</i></p>", htmlescape::encode_minimal(&error))
-            },
-            Err(err) => {
-                tracing::warn!(
-                    error.message = %err,
-                    error.cause_chain = ?err,
-                    "Failed to verify query params using HMAC tag"
-                );
-                "".into()
-            }
-        },
+        Some(cookie) => {
+            format!("<p><i>{}</i></p>", cookie.value())
+        }
     };
     HttpResponse::Ok()
         .content_type(ContentType::html())
-        .body(format!(
-                r#"<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <title>Login</title>
-    <meta http-equiv="content-type" content="text/html"; charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-  </head>
-  <body>
-  {error_html}
-    <form action="/login" method="post">
-      <label for="username">
-        Username
-        <input type="text" name="username" placeholder="Enter username">
-      </label>
-      <label for="password">
-        Username
-        <input type="text" name="password" placeholder="Enter password">
-      </label>
-      <button type="submit">Login</button>
-    </form>
-  </body>
-</html>"#
-        ))
+        .body(error_html)
 }
