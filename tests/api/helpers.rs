@@ -34,7 +34,7 @@ pub struct TestApp {
     pub email_server: MockServer,
     pub port: u16,
     pub test_user: TestUser,
-    pub api_client: reqwest::Client
+    pub api_client: reqwest::Client,
 }
 
 impl TestApp {
@@ -75,8 +75,10 @@ impl TestApp {
             .await
             .unwrap()
     }
-    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response 
-    where Body: serde::Serialize {
+    pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
         self.api_client
             .post(&format!("{}/login", &self.address))
             .form(body)
@@ -166,7 +168,7 @@ pub async fn spawn_app() -> TestApp {
         email_server,
         port,
         test_user: TestUser::generate(),
-        api_client
+        api_client,
     };
     app.test_user.store(&app.connection_pool).await;
     app

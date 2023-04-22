@@ -1,19 +1,19 @@
 use crate::authentication::AuthError;
 use crate::routes::error_chain_fmt;
-use actix_web::HttpResponse;
+use actix_web::cookie::Cookie;
 use actix_web::error::InternalError;
 use actix_web::http::header::LOCATION;
 use actix_web::web;
-use actix_web::cookie::Cookie;
+use actix_web::HttpResponse;
 use secrecy::Secret;
 use sqlx::PgPool;
 
-use crate::authentication::{Credentials, validate_credentials};
+use crate::authentication::{validate_credentials, Credentials};
 
 #[derive(serde::Deserialize)]
 pub struct FormData {
     username: String,
-    password: Secret<String>
+    password: Secret<String>,
 }
 
 #[derive(thiserror::Error)]
@@ -21,7 +21,7 @@ pub enum LoginError {
     #[error("Authentication failed")]
     AuthError(#[source] anyhow::Error),
     #[error("Something went wrong")]
-    UnexpectedError(#[from] anyhow::Error)
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 impl std::fmt::Debug for LoginError {
@@ -31,7 +31,7 @@ impl std::fmt::Debug for LoginError {
 }
 
 #[tracing::instrument(
-    skip(form, connection_pool), 
+    skip(form, connection_pool)
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
 pub async fn login(
@@ -40,10 +40,9 @@ pub async fn login(
 ) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.username,
-        password: form.0.password
+        password: form.0.password,
     };
-    tracing::Span::current()
-        .record("username", &tracing::field::display(&credentials.username));
+    tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
     match validate_credentials(credentials, &connection_pool).await {
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
@@ -54,10 +53,10 @@ pub async fn login(
         Err(err) => {
             let err = match err {
                 AuthError::InvalidCredentials(_) => LoginError::AuthError(err.into()),
-                AuthError::UnexpectedError(_) => LoginError::UnexpectedError(err.into())
+                AuthError::UnexpectedError(_) => LoginError::UnexpectedError(err.into()),
             };
             let response = HttpResponse::SeeOther()
-                .insert_header((LOCATION,"/login"))
+                .insert_header((LOCATION, "/login"))
                 .cookie(Cookie::new("_flash", err.to_string()))
                 .finish();
             Err(InternalError::from_response(err, response))

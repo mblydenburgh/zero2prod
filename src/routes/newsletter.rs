@@ -1,4 +1,4 @@
-use crate::authentication::{AuthError, validate_credentials, Credentials};
+use crate::authentication::{validate_credentials, AuthError, Credentials};
 use crate::domain::SubscriberEmail;
 use crate::email_client::EmailClient;
 use crate::routes::error_chain_fmt;
@@ -73,7 +73,7 @@ pub async fn publish_newsletter(
         .await
         .map_err(|e| match e {
             AuthError::UnexpectedError(_) => PublishError::UnexpectedError(e.into()),
-            AuthError::InvalidCredentials(_) => PublishError::AuthenticationError(e.into())
+            AuthError::InvalidCredentials(_) => PublishError::AuthenticationError(e.into()),
         })?;
     tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
     let subscribers = get_confirmed_subscribers(&pool).await?;
@@ -133,7 +133,6 @@ fn basic_authentication(headers: &HeaderMap) -> Result<Credentials, anyhow::Erro
 struct ConfirmedSubscriber {
     email: SubscriberEmail,
 }
-
 
 #[tracing::instrument(name = "Get confirmed subscribers", skip(pool))]
 async fn get_confirmed_subscribers(

@@ -9,7 +9,7 @@ pub enum AuthError {
     #[error("Invalid crendentials.")]
     InvalidCredentials(#[source] anyhow::Error),
     #[error(transparent)]
-    UnexpectedError(#[from] anyhow::Error)
+    UnexpectedError(#[from] anyhow::Error),
 }
 
 pub struct Credentials {
