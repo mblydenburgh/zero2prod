@@ -22,11 +22,9 @@ pub async fn admin_dashboard(
             .await
             .map_err(err500)?
     } else {
-        return Ok(
-            HttpResponse::SeeOther()
-                .insert_header((LOCATION, "/login"))
-                .finish()
-        );
+        return Ok(HttpResponse::SeeOther()
+            .insert_header((LOCATION, "/login"))
+            .finish());
     };
     Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
