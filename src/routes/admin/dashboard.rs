@@ -1,25 +1,37 @@
-use actix_web::{HttpResponse, web, http::header::ContentType};
+use actix_web::{http::header::ContentType, web, HttpResponse};
 use anyhow::Context;
+use reqwest::header::LOCATION;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::session_state::TypedSession;
 
 fn err500<T>(err: T) -> actix_web::Error
-where T: std::fmt::Debug + std::fmt::Display + 'static {
+where
+    T: std::fmt::Debug + std::fmt::Display + 'static,
+{
     actix_web::error::ErrorInternalServerError(err)
 }
 
-pub async fn admin_dashboard(session: TypedSession, connection_pool: web::Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
+pub async fn admin_dashboard(
+    session: TypedSession,
+    connection_pool: web::Data<PgPool>,
+) -> Result<HttpResponse, actix_web::Error> {
     let username = if let Some(user_id) = session.get_user_id().map_err(err500)? {
-        get_username(user_id, &connection_pool).await.map_err(err500)?
+        get_username(user_id, &connection_pool)
+            .await
+            .map_err(err500)?
     } else {
-        todo!()
+        return Ok(
+            HttpResponse::SeeOther()
+                .insert_header((LOCATION, "/login"))
+                .finish()
+        );
     };
     Ok(HttpResponse::Ok()
         .content_type(ContentType::html())
         .body(format!(
-                r#"
+            r#"
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,18 +47,15 @@ pub async fn admin_dashboard(session: TypedSession, connection_pool: web::Data<P
 }
 
 #[tracing::instrument(name = "Get username", skip(connection_pool))]
-async fn get_username(
-    user_id: Uuid,
-    connection_pool: &PgPool
-) -> Result<String, anyhow::Error> {
+async fn get_username(user_id: Uuid, connection_pool: &PgPool) -> Result<String, anyhow::Error> {
     let row = sqlx::query!(
         r#"
         SELECT username FROM users WHERE user_id = $1
         "#,
         user_id
     )
-        .fetch_one(connection_pool)
-        .await
-        .context("Failed to perform query to get username.")?;
+    .fetch_one(connection_pool)
+    .await
+    .context("Failed to perform query to get username.")?;
     Ok(row.username)
 }

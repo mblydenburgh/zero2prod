@@ -1,6 +1,6 @@
 use std::future::{ready, Ready};
 
-use actix_session::{Session, SessionInsertError, SessionGetError, SessionExt};
+use actix_session::{Session, SessionExt, SessionGetError, SessionInsertError};
 use actix_web::FromRequest;
 use uuid::Uuid;
 
@@ -33,7 +33,10 @@ impl FromRequest for TypedSession {
     // Future that resolves to the wrapped value the first time it's polled.
     type Future = Ready<Result<TypedSession, Self::Error>>;
 
-    fn from_request(req: &actix_web::HttpRequest, _payload: &mut actix_web::dev::Payload) -> Self::Future {
+    fn from_request(
+        req: &actix_web::HttpRequest,
+        _payload: &mut actix_web::dev::Payload,
+    ) -> Self::Future {
         ready(Ok(TypedSession(req.get_session())))
     }
 }

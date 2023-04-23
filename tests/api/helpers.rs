@@ -75,16 +75,15 @@ impl TestApp {
             .await
             .unwrap()
     }
-    pub async fn get_admin_dashboard(&self) -> String {
+    pub async fn get_admin_dashboard(&self) -> reqwest::Response {
         self.api_client
             .get(&format!("{}/admin/dashboard", &self.address))
             .send()
             .await
             .expect("Failed to execute request")
-            .text()
-            .await
-            .unwrap()
-
+    }
+    pub async fn get_admin_dashboard_html(&self) -> String {
+        self.get_admin_dashboard().await.text().await.unwrap()
     }
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where

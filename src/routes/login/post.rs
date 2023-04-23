@@ -1,7 +1,6 @@
 use crate::authentication::AuthError;
 use crate::routes::error_chain_fmt;
 use crate::session_state::TypedSession;
-use actix_session::Session;
 use actix_web::error::InternalError;
 use actix_web::http::header::LOCATION;
 use actix_web::web;
@@ -39,7 +38,7 @@ impl std::fmt::Debug for LoginError {
 pub async fn login(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
-    session: TypedSession
+    session: TypedSession,
 ) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.username,
