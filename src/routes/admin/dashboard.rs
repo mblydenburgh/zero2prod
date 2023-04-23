@@ -1,0 +1,51 @@
+use actix_session::Session;
+use actix_web::{HttpResponse, web, http::header::ContentType};
+use anyhow::Context;
+use sqlx::PgPool;
+use uuid::Uuid;
+
+fn err500<T>(err: T) -> actix_web::Error
+where T: std::fmt::Debug + std::fmt::Display + 'static {
+    actix_web::error::ErrorInternalServerError(err)
+}
+
+pub async fn admin_dashboard(session: Session, connection_pool: web::Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
+    let username = if let Some(user_id) = session.get::<Uuid>("user_id").map_err(err500)? {
+        get_username(user_id, &connection_pool).await.map_err(err500)?
+    } else {
+        todo!()
+    };
+    Ok(HttpResponse::Ok()
+        .content_type(ContentType::html())
+        .body(format!(
+                r#"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html"; charset=utf-8">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <p>Welcome {username}!</p>
+</body>
+</html>
+                "#
+        )))
+}
+
+#[tracing::instrument(name = "Get username", skip(connection_pool))]
+async fn get_username(
+    user_id: Uuid,
+    connection_pool: &PgPool
+) -> Result<String, anyhow::Error> {
+    let row = sqlx::query!(
+        r#"
+        SELECT username FROM users WHERE user_id = $1
+        "#,
+        user_id
+    )
+        .fetch_one(connection_pool)
+        .await
+        .context("Failed to perform query to get username.")?;
+    Ok(row.username)
+}

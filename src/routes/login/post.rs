@@ -1,5 +1,6 @@
 use crate::authentication::AuthError;
 use crate::routes::error_chain_fmt;
+use actix_session::Session;
 use actix_web::error::InternalError;
 use actix_web::http::header::LOCATION;
 use actix_web::web;
@@ -31,12 +32,13 @@ impl std::fmt::Debug for LoginError {
 }
 
 #[tracing::instrument(
-    skip(form, connection_pool)
+    skip(form, connection_pool, session)
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
 )]
 pub async fn login(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
+    session: Session
 ) -> Result<HttpResponse, InternalError<LoginError>> {
     let credentials = Credentials {
         username: form.0.username,
@@ -46,8 +48,9 @@ pub async fn login(
     match validate_credentials(credentials, &connection_pool).await {
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+            session.insert("user_id", user_id).map_err(|err| login_redirect(LoginError::UnexpectedError(err.into())))?;
             Ok(HttpResponse::SeeOther()
-                .insert_header((LOCATION, "/"))
+                .insert_header((LOCATION, "/admin/dashboard"))
                 .finish())
         }
         Err(err) => {
@@ -55,11 +58,15 @@ pub async fn login(
                 AuthError::InvalidCredentials(_) => LoginError::AuthError(err.into()),
                 AuthError::UnexpectedError(_) => LoginError::UnexpectedError(err.into()),
             };
-            FlashMessage::error(err.to_string()).send();
-            let response = HttpResponse::SeeOther()
-                .insert_header((LOCATION, "/login"))
-                .finish();
-            Err(InternalError::from_response(err, response))
+            Err(login_redirect(err))
         }
     }
+}
+
+fn login_redirect(err: LoginError) -> InternalError<LoginError> {
+    FlashMessage::error(err.to_string()).send();
+    let response = HttpResponse::SeeOther()
+        .insert_header((LOCATION, "/login"))
+        .finish();
+    InternalError::from_response(err, response)
 }
