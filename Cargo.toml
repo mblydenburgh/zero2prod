@@ -13,6 +13,7 @@ name = "zero2prod"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+actix-session = { version = "0.7", features = ["redis-rs-tls-session"] }
 actix-web = "4"
 actix-web-flash-messages = { version = "0.4", features = ["cookies"] }
 argon2 = { version = "0.4", features = ["std"] }
