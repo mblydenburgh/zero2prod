@@ -1,16 +1,17 @@
-use actix_session::Session;
 use actix_web::{HttpResponse, web, http::header::ContentType};
 use anyhow::Context;
 use sqlx::PgPool;
 use uuid::Uuid;
+
+use crate::session_state::TypedSession;
 
 fn err500<T>(err: T) -> actix_web::Error
 where T: std::fmt::Debug + std::fmt::Display + 'static {
     actix_web::error::ErrorInternalServerError(err)
 }
 
-pub async fn admin_dashboard(session: Session, connection_pool: web::Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
-    let username = if let Some(user_id) = session.get::<Uuid>("user_id").map_err(err500)? {
+pub async fn admin_dashboard(session: TypedSession, connection_pool: web::Data<PgPool>) -> Result<HttpResponse, actix_web::Error> {
+    let username = if let Some(user_id) = session.get_user_id().map_err(err500)? {
         get_username(user_id, &connection_pool).await.map_err(err500)?
     } else {
         todo!()
