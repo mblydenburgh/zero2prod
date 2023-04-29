@@ -1,5 +1,6 @@
+# On MacOS, `brew install llvm` and follow steps in `brew info llvm`
 [target.x86_64-apple-darwin]
-rustflags = ["-C", "link-arg=-fuse-ld=/usr/local/bin/zld"]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
 
 [target.aarch64-apple-darwin]
-rustflags = ["C", "link-arg-fuse-ld=/usr/local/bin/zld"]
+rustflags = ["-C", "link-arg=-fuse-ld=/opt/homebrew/opt/llvm/bin/ld64.lld"]
