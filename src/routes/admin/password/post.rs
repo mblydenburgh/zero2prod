@@ -50,7 +50,7 @@ pub async fn change_password(
                 FlashMessage::error("Current password is incorrect").send();
                 Ok(see_other("/admin/password"))
             }
-            AuthError::UnexpectedError(_) => Err(err500(e).into()),
+            AuthError::UnexpectedError(_) => Err(err500(e)),
         };
     }
     todo!()
