@@ -107,20 +107,24 @@ async fn new_password_must_be_of_valid_length() {
 async fn changing_passwords_works() {
     let app = spawn_app().await;
     let new_password = Uuid::new_v4().to_string();
-    
+
     // 1. Login
-    let response = app.post_login(&serde_json::json!({
-        "username": &app.test_user.username,
-        "password": &app.test_user.password
-    })).await;
+    let response = app
+        .post_login(&serde_json::json!({
+            "username": &app.test_user.username,
+            "password": &app.test_user.password
+        }))
+        .await;
     assert_is_redirect_to(&response, "/admin/dashboard");
 
     // 2. Change password
-    let response = app.post_change_password(&serde_json::json!({
-        "current_password": &app.test_user.password,
-        "new_password": &new_password,
-        "confirm_new_password": &new_password
-    })).await;
+    let response = app
+        .post_change_password(&serde_json::json!({
+            "current_password": &app.test_user.password,
+            "new_password": &new_password,
+            "confirm_new_password": &new_password
+        }))
+        .await;
     assert_is_redirect_to(&response, "/admin/password");
 
     // 3. Follow redirect, confirm success message
