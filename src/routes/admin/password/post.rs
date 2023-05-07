@@ -19,7 +19,7 @@ pub struct FormData {
 pub async fn change_password(
     form: web::Form<FormData>,
     connection_pool: web::Data<PgPool>,
-    user_id: web::ReqData<UserId>
+    user_id: web::ReqData<UserId>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let user_id = user_id.into_inner();
     if form.new_password.expose_secret() != form.confirm_new_password.expose_secret() {
@@ -54,5 +54,3 @@ pub async fn change_password(
     FlashMessage::info("Password successfully updated").send();
     Ok(see_other("/admin/password"))
 }
-
-
