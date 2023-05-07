@@ -1,7 +1,7 @@
 use tracing::info;
 use uuid::Uuid;
 
-use crate::helpers::{spawn_app, assert_is_redirect_to};
+use crate::helpers::{assert_is_redirect_to, spawn_app};
 
 #[tokio::test]
 async fn you_must_be_logged_in_to_see_the_change_password_form() {
@@ -39,11 +39,11 @@ async fn new_password_fields_must_match() {
     app.post_login(&serde_json::json!({
         "username": &app.test_user.username,
         "password": &app.test_user.password
-    })).await;
+    }))
+    .await;
 
     let response = app.post_change_password(&body).await;
     assert_is_redirect_to(&response, "/admin/password");
-
 
     // Following redirect to assert error message
     let html_page = app.get_change_password_html().await;
@@ -62,7 +62,8 @@ async fn current_password_must_be_valid() {
     app.post_login(&serde_json::json!({
         "username": &app.test_user.username,
         "password": &app.test_user.password
-    })).await;
+    }))
+    .await;
 
     let response = app.post_change_password(&body).await;
     assert_is_redirect_to(&response, "/admin/password");
@@ -76,11 +77,18 @@ async fn new_password_must_be_of_valid_length() {
     app.post_login(&serde_json::json!({
         "username": &app.test_user.username,
         "password": &app.test_user.password
-    })).await;
+    }))
+    .await;
     let long_password = String::from_utf8(vec![b'X'; 130]).unwrap();
     let test_cases = vec![
-        ("pw","<p><i>New password must be greater than 12 and less than 128 characters</i></p>"),
-        (&long_password, "<p><i>New password must be greater than 12 and less than 128 characters</i></p>")
+        (
+            "pw",
+            "<p><i>New password must be greater than 12 and less than 128 characters</i></p>",
+        ),
+        (
+            &long_password,
+            "<p><i>New password must be greater than 12 and less than 128 characters</i></p>",
+        ),
     ];
     for (new_password, error_content) in test_cases {
         let body = serde_json::json!({
