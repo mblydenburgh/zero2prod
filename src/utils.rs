@@ -1,6 +1,13 @@
 use actix_web::http::header::LOCATION;
 use actix_web::HttpResponse;
 
+pub fn err400<T>(err: T) -> actix_web::Error
+where
+    T: std::fmt::Debug + std::fmt::Display + 'static,
+{
+    actix_web::error::ErrorBadRequest(err)
+}
+
 pub fn err500<T>(err: T) -> actix_web::Error
 where
     T: std::fmt::Debug + std::fmt::Display + 'static,
