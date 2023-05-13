@@ -29,7 +29,9 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_publish_newsletter_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"));
+    assert!(html_page.contains(
+        "<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"
+    ));
     app.dispatch_all_pending_emails().await;
     // Mock verifies on Drop that we haven't sent the newsletter email
 }
@@ -57,7 +59,9 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
     assert_is_redirect_to(&response, "/admin/newsletters");
 
     let html_page = app.get_publish_newsletter_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"));
+    assert!(html_page.contains(
+        "<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"
+    ));
     app.dispatch_all_pending_emails().await;
     // Mock verifies on Drop that we have sent the newsletter email
 }
@@ -107,7 +111,9 @@ async fn newsletter_creation_is_idempotent() {
 
     // Follow redirect and validate flash message
     let html_page = app.get_publish_newsletter_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"));
+    assert!(html_page.contains(
+        "<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"
+    ));
 
     // Submit newsletter again
     let response = app.post_newsletter(&form_body).await;
@@ -115,7 +121,9 @@ async fn newsletter_creation_is_idempotent() {
 
     // Follow redirect
     let html_page = app.get_publish_newsletter_html().await;
-    assert!(html_page.contains("<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"));
+    assert!(html_page.contains(
+        "<p><i>The newsletter issue has been accepted - emails will go out shortly</i></p>"
+    ));
     app.dispatch_all_pending_emails().await;
     // Mock verifies on shutdown that only 1 http reqest is made
 }

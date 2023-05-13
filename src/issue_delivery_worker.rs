@@ -1,8 +1,8 @@
-use std::time::Duration;
-use crate::{configuration::Settings, startup::get_connection_pool};
 use crate::domain::SubscriberEmail;
 use crate::email_client::EmailClient;
+use crate::{configuration::Settings, startup::get_connection_pool};
 use sqlx::{PgPool, Postgres, Transaction};
+use std::time::Duration;
 use tracing::{field::display, Span};
 use uuid::Uuid;
 
@@ -17,9 +17,7 @@ pub enum ExecutionOutcome {
     EmptyQueue,
 }
 
-pub async fn run_worker_until_stopped(
-    configuration: Settings
-) -> Result<(), anyhow::Error> {
+pub async fn run_worker_until_stopped(configuration: Settings) -> Result<(), anyhow::Error> {
     let connection_pool = get_connection_pool(&configuration.database);
     let email_client = configuration.email_client.client();
     worker_loop(connection_pool, email_client).await

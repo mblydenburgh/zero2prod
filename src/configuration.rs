@@ -130,11 +130,6 @@ impl EmailClientSettings {
     pub fn client(self) -> EmailClient {
         let sender_email = self.sender().expect("Invalid send email address");
         let timeout = self.timeout();
-        EmailClient::new(
-            self.base_url,
-            sender_email, 
-            self.token,
-            timeout
-        )
+        EmailClient::new(self.base_url, sender_email, self.token, timeout)
     }
 }

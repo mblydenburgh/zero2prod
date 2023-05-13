@@ -153,11 +153,12 @@ impl TestApp {
 
     pub async fn dispatch_all_pending_emails(&self) {
         loop {
-            if let ExecutionOutcome::EmptyQueue = 
+            if let ExecutionOutcome::EmptyQueue =
                 try_execute_task(&self.connection_pool, &self.email_client)
-                .await
-                .unwrap() {
-                    break;
+                    .await
+                    .unwrap()
+            {
+                break;
             }
         }
     }
