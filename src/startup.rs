@@ -29,17 +29,7 @@ impl Application {
     pub async fn build(config: Settings) -> Result<Self, anyhow::Error> {
         let connection_pool = get_connection_pool(&config.database);
         let base_url = config.application.base_url;
-        let sender = config
-            .email_client
-            .sender()
-            .expect("Could not parse sender email");
-        let timeout = config.email_client.timeout();
-        let email_client = EmailClient::new(
-            config.email_client.base_url,
-            sender,
-            config.email_client.token,
-            timeout,
-        );
+        let email_client = config.email_client.client();
         let address = format!("{}:{}", config.application.host, config.application.port);
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();

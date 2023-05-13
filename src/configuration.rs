@@ -6,6 +6,7 @@ use sqlx::{
 };
 
 use crate::domain::SubscriberEmail;
+use crate::email_client::EmailClient;
 
 #[derive(Clone, serde::Deserialize)]
 pub struct Settings {
@@ -122,5 +123,18 @@ impl TryFrom<String> for Environment {
                 "{other} is not a supported env, use local or production"
             )),
         }
+    }
+}
+
+impl EmailClientSettings {
+    pub fn client(self) -> EmailClient {
+        let sender_email = self.sender().expect("Invalid send email address");
+        let timeout = self.timeout();
+        EmailClient::new(
+            self.base_url,
+            sender_email, 
+            self.token,
+            timeout
+        )
     }
 }

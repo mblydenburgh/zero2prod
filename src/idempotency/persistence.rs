@@ -10,7 +10,7 @@ use super::IdempotencyKey;
 #[allow(clippy::large_enum_variant)]
 pub enum NextAction {
     StartProcessing(Transaction<'static, Postgres>),
-    ReturnSavedResponse(HttpResponse)
+    ReturnSavedResponse(HttpResponse),
 }
 
 #[derive(Debug, sqlx::Type)]
@@ -104,11 +104,10 @@ pub async fn save_response(
     Ok(http_response)
 }
 
-
 pub async fn try_processing(
     connection_pool: &PgPool,
     idempotency_key: &IdempotencyKey,
-    user_id: Uuid
+    user_id: Uuid,
 ) -> Result<NextAction, anyhow::Error> {
     let mut transaction = connection_pool.begin().await?;
     let n_inserted_row = sqlx::query!(
@@ -124,18 +123,16 @@ pub async fn try_processing(
         user_id,
         idempotency_key.as_ref()
     )
-        .execute(&mut transaction)
-        .await?
-        .rows_affected();
+    .execute(&mut transaction)
+    .await?
+    .rows_affected();
     if n_inserted_row > 0 {
         // Inserted a new row, no saved_response available
         Ok(NextAction::StartProcessing(transaction))
     } else {
         let saved_response = get_saved_response(connection_pool, idempotency_key, user_id)
             .await?
-            .ok_or_else(|| {
-                anyhow::anyhow!("We expected a saved, we didn't find it")
-            })?;
+            .ok_or_else(|| anyhow::anyhow!("We expected a saved, we didn't find it"))?;
         Ok(NextAction::ReturnSavedResponse(saved_response))
     }
 }
