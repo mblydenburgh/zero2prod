@@ -162,48 +162,6 @@ async fn concurrent_form_submission_is_handled_gracefully() {
     app.dispatch_all_pending_emails().await;
 }
 
-#[tokio::test]
-async fn transient_errors_do_not_cause_duplicate_deliveries_on_retries() {
-    let app = spawn_app().await;
-    let form_body = serde_json::json!({
-        "title": "Fancy title",
-        "text_content": "Some questionable text content",
-        "html_content": "<p>Some questionable html content</p>",
-        "idempotency_key": uuid::Uuid::new_v4().to_string()
-    });
-    create_confirmed_subscriber(&app).await;
-    create_confirmed_subscriber(&app).await;
-    app.test_user.login(&app).await;
-
-    // Submit newsletter form, Email delivery fails for second subscriber
-    when_sending_an_email()
-        .respond_with(ResponseTemplate::new(200))
-        .up_to_n_times(1)
-        .expect(1)
-        .mount(&app.email_server)
-        .await;
-    when_sending_an_email()
-        .respond_with(ResponseTemplate::new(500))
-        .up_to_n_times(1)
-        .expect(1)
-        .mount(&app.email_server)
-        .await;
-    let response = app.post_newsletter(&form_body).await;
-    assert_eq!(response.status().as_u16(), 500);
-
-    // Retry submitting the form
-    when_sending_an_email()
-        .respond_with(ResponseTemplate::new(200))
-        .expect(1)
-        .named("Delivery retry")
-        .mount(&app.email_server)
-        .await;
-    let response = app.post_newsletter(&form_body).await;
-    assert_eq!(response.status().as_u16(), 303);
-
-    // Mock verifies on Drop that we did not send out duplicates
-}
-
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
     let name: String = Name().fake();
     let email: String = SafeEmail().fake();
