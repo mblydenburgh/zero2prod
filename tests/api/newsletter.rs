@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::helpers::{assert_is_redirect_to, spawn_app, ConfirmationLinks, TestApp};
 use wiremock::matchers::{any, method, path};
 use wiremock::{Mock, ResponseTemplate};
@@ -111,6 +113,36 @@ async fn newsletter_creation_is_idempotent() {
     let html_page = app.get_publish_newsletter_html().await;
     assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
     // Mock verifies on shutdown that only 1 http reqest is made
+}
+
+#[tokio::test]
+async fn concurrent_form_submission_is_handled_gracefully() {
+    let app = spawn_app().await;
+    create_confirmed_subscriber(&app).await;
+    app.test_user.login(&app).await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        // Add artificial delay to ensure 2nd request comes in before first finishes
+        .respond_with(ResponseTemplate::new(200).set_delay(Duration::from_secs(2)))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    let form_body = serde_json::json!({
+        "title": "Fancy title",
+        "text_content": "Some questionable text content",
+        "html_content": "<p>Some questionable html content</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
+    });
+
+    // Post two concurrent requests
+    let response1 = app.post_newsletter(&form_body);
+    let response2 = app.post_newsletter(&form_body);
+    let (response1, response2) = tokio::join!(response1, response2);
+
+    assert_eq!(response1.status(), response2.status());
+    assert_eq!(response1.text().await.unwrap(), response2.text().await.unwrap());
 }
 
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
