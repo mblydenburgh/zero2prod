@@ -177,7 +177,7 @@ async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
         .expect(1)
         .mount_as_scoped(&app.email_server)
         .await;
-    app.post_subscription(body.into())
+    app.post_subscription(body)
         .await
         .error_for_status()
         .unwrap();
