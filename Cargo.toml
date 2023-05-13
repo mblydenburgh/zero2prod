@@ -66,5 +66,6 @@ claims = "0.7"
 fake = "~2.3"
 linkify = "0.9"
 serde_json = "1"
+serde_urlencoded = "0.7.1"
 tokio = { version = "1", features = ["rt", "macros"] }
 wiremock = "0.5"
